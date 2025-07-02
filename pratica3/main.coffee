@@ -17,11 +17,14 @@ teclas = {}
 
 
 
+
+
 main = () =>
   c = await wgpu_context_new canvas:'tela', debug:true, transparent:true
   c.frame_buffer_format 'color', 'depth'
   c.vertex_format 'xyz', 'rgba', 'uv'
   mat = c.use_mat4x4_format()
+
 
   await carrega_dados()
   prepara_shader_data_groups()
@@ -107,7 +110,7 @@ prepara_instancias = () ->
     instance_index: 2, instance_group: gr.dados_instancias
   )
 
-  nave = cria_nave( vec( 3,-2,0 ) )
+  nave = cria_nave( vec( 3,-2,0 ) ) # x:7 e y:5 da pra faze wrap around
   cria_asteroide( vec( -4,2,0 ) )
 
 
@@ -165,7 +168,7 @@ cria_explosao = (pos) ->
   inst.pos = pos
   inst.size = 2.0
   inst.start_animation_from_materials(
-    'data/explosao2/explosao[0-7].png',
+    'data/explosao1/explosao[0-6].png',
     gr.dados_materiais,
     on_animation_end: (inst) ->
       inst.remove()
@@ -237,13 +240,25 @@ renderiza = () ->
   c.animation_repeat renderiza, 10
 
 
+ajuste = (pos) ->
+# x:7 e y:5 da pra faze wrap around
+  if pos.x > 6.7 || pos.x < -6.7
+    pos.x *= -1
+  
+  if pos.y > 4.6 || pos.y < -4.6
+    pos.y *= -1
+
+  return pos
+
 
 processa_movimento = () ->
   fator = 0.1
 
+
+
   asteroides = ls.get_instances_by_class( 'asteroide' )
   for ast in asteroides
-    ast.pos = ast.pos.add( ast.vel.mul_by_scalar(fator) )
+    ast.pos = ajuste(ast.pos.add( ast.vel.mul_by_scalar(fator) ))
 
 
   tiros = ls.get_instances_by_class( 'tiro' )
@@ -253,7 +268,7 @@ processa_movimento = () ->
 
   coisas = ls.get_instances_by_class( 'coisa' )
   for coisa in coisas
-    coisa.pos = coisa.pos.add( coisa.vel.mul_by_scalar(fator) )
+    coisa.pos = ajuste(coisa.pos.add( coisa.vel.mul_by_scalar(fator) ))
 
 
   ang_inc = 3
@@ -285,8 +300,6 @@ processa_movimento = () ->
     cria_coisa()
   
   if apertou_tecla('e')
-    cria_explosao(inst.pos)
-
     cria_explosao(vec_random())
 
 
@@ -297,7 +310,7 @@ processa_movimento = () ->
   if y_inc != 0
     nave.vel = nave.vel.add( nave.frente.mul_by_scalar(fator*y_inc) )
 
-  nave.pos = nave.pos.add( nave.vel.mul_by_scalar(fator) )
+  nave.pos = ajuste(nave.pos.add( nave.vel.mul_by_scalar(fator) ))
 
 
   nave.vel = nave.vel.mul_by_scalar( 0.95 )
@@ -311,10 +324,6 @@ TRS = (pos, ang,rx,ry,rz, scale_factor) ->
   T = mat.translate pos
   return mat.mul T, R, S
 
-# ajusta(pos)
-#   if pos.x > 1000
-#     pos.x 
-  #   nave.pos = mul_by_scalar(nave.pos, -1)
 
 atualiza_uniforms = () ->
 

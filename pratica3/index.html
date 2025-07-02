@@ -1,28 +1,34 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Exemplo</title>
-    <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <style>
-      html, body {
-        height: 100%;
-        padding: 0;
-        margin: 0;
-      }
-      body {
-        background: linear-gradient(#1d1d1d, #3e033c, #492d26);
-        display: grid;
-        place-items: center;
-      }
-      #tela {
-        background: linear-gradient(#000000, #3e033c, #f67c5c);
-      }
-    </style>
-  </head>
-  <body>
-    <canvas id="tela" width="1000" height="800"></canvas>
-    <script src="../lib_webgpu.min.js"></script>
-    <script src="main.js"></script>
-  </body>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Exemplo</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <style>
+    html,
+    body {
+      height: 100%;
+      padding: 0;
+      margin: 0;
+    }
+
+    body {
+      background: linear-gradient(#1d1d1d, #3e033c, #492d26);
+      display: grid;
+      place-items: center;
+    }
+
+    #tela {
+      background: linear-gradient(#000000, #3e033c, #f67c5c);
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="tela" width="800" height="500"></canvas>
+  <script src="../lib_webgpu.min.js"></script>
+  <script src="main.js"></script>
+</body>
+
 </html>
