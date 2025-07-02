@@ -1,0 +1,38 @@
+
+main = () =>
+  c = await wgpu_context_new canvas:'tela', debug:true
+  c.frame_buffer_format 'color', 'depth'  
+  c.vertex_format 'xyz', 'rgba'
+  
+  z1 = 0.4
+  z2 = 0.5
+
+  tri1 = c.obj()
+  tri1.begin()
+  tri1.vert( 0.0,0.0,z1, 1,0,0,1 )
+  tri1.vert( 0.5,0.0,z1, 1,0,0,1 )
+  tri1.vert( 0.5,0.5,z1, 1,0,0,1 )
+  tri1.end()
+
+  tri2 = c.obj()
+  tri2.begin()
+  tri2.vert( 0.2,0.1,z2, 1,1,0,1 )
+  tri2.vert( 0.7,0.1,z2, 1,1,0,1 )
+  tri2.vert( 0.7,0.6,z2, 1,1,0,1 )
+  tri2.end()
+
+
+  p = c.pipeline()
+  p.begin( 'triangles' )
+  await p.shader_from_file 'shader.wgsl'
+  p.depth_test( true )
+  p.end()
+
+  j = c.job()
+  j.render_begin()  
+  j.render_objs( p, [tri1, tri2] )
+  j.render_end()
+  j.gpu_send()
+
+
+main()
