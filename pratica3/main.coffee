@@ -31,6 +31,7 @@ main = () =>
   prepara_pipelines()
   prepara_instancias()
   prepara_teclado_eventos()
+  toca_som('trilha')
   
   job = c.job()
   renderiza()
@@ -200,6 +201,36 @@ cria_coisa = (pos) ->
 
   return coisa
 
+toca_som = (inst) ->
+  audioContext = new AudioContext();
+  source = audioContext.createBufferSource();
+  gainNode = audioContext.createGain();
+  analyser = audioContext.createAnalyser();
+  
+  switch inst
+    when 'tiro'
+      response = await fetch('data/sounds/shoot.mp3');
+      gainNode.gain.value = 0.1
+    when 'trilha'
+      response = await fetch('data/sounds/trilha.mp3');
+      gainNode.gain.value = 0.06
+      source.loop = true;
+
+
+
+  arrayBuffer = await response.arrayBuffer();
+  audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+
+
+  source.buffer = audioBuffer;
+
+
+  source.connect(gainNode)
+  gainNode.connect(analyser);
+  analyser.connect(audioContext.destination);
+
+  source.start();
 
 
 prepara_teclado_eventos = () ->
@@ -290,6 +321,7 @@ processa_movimento = () ->
 
   if apertou_tecla( ' ' ) 
     cria_tiro( nave )
+    toca_som( 'tiro' )
 
   
   if apertou_tecla( 'a' )
