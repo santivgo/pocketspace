@@ -123,7 +123,7 @@ cria_nave = (pos) ->
   return inst
 
 
-cria_asteroide = (pos) ->
+cria_asteroide = (pos, size = 0.5) ->
   min_pos = vec( -3,-3, 0 )
   max_pos = vec( +3,+3, 0 )
 
@@ -141,7 +141,8 @@ cria_asteroide = (pos) ->
   ast.pos = pos
   ast.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.1) 
   ast.ang = random(90)
-  ast.size = 0.5
+  ast.size = size
+  ast.radius = ast.size * 0.7
 
   return ast
 
@@ -151,11 +152,12 @@ cria_tiro = (nave) ->
   inst.set_class( 'tiro' )
 
   inst.pos = nave.pos.add(nave.frente.mul_by_scalar(0.8))
-  cria_explosao(inst.pos)
-
+  inst.radius = 0.1
 
   inst.vel = nave.frente.mul_by_scalar(1)
   inst.ang = 0
+
+  return inst
 
 
 cria_explosao = (pos) ->
@@ -223,10 +225,31 @@ apertou_tecla = (key) ->
   if apertou
     teclas[ key ] = 2
 
+detectar_colisao = () ->
+  tiros = ls.get_instances_by_class( 'tiro' )
+  asteroides = ls.get_instances_by_class( 'asteroide' )
 
+  for tiro in tiros
+    for ast in asteroides
+      dx = tiro.pos.x - ast.pos.x
+      dy = tiro.pos.y - ast.pos.y
+      dz = tiro.pos.z - ast.pos.z
+      distancia = Math.sqrt(dx*dx + dy*dy + dz*dz)
+      
+      raio_colisao = tiro.radius + ast.radius
+      
+      if distancia < raio_colisao
+        tiro.remove() 
+        ast.remove()
+        cria_explosao(ast.pos)
+        if(ast.size > 0.2)
+          cria_asteroide(ast.pos, ast.size/2)
+          cria_asteroide(ast.pos, ast.size/2)
+        break
 
 renderiza = () ->
   processa_movimento()
+  detectar_colisao()
   atualiza_uniforms()
 
   job.render_begin()
@@ -235,7 +258,6 @@ renderiza = () ->
   job.gpu_send()
 
   c.animation_repeat renderiza, 10
-
 
 
 processa_movimento = () ->
