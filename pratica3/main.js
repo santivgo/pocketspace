@@ -180,6 +180,7 @@ cria_coisa = function(pos) {
   coisa.set_class('coisa');
   coisa.pos = pos;
   coisa.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.1);
+  coisa.radius = 0.7;
   coisa.size = 1.0;
   return coisa;
 };
@@ -217,30 +218,45 @@ apertou_tecla = function(key) {
 };
 
 detectar_colisao = function() {
-  var ast, asteroides, distancia, dx, dy, dz, i, len, raio_colisao, results, tiro, tiros;
+  var ast, asteroides, coisa, coisas, distancia, dx, dy, dz, i, j, len, len1, raio_colisao, results, tiro, tiros;
   tiros = ls.get_instances_by_class('tiro');
   asteroides = ls.get_instances_by_class('asteroide');
+  coisas = ls.get_instances_by_class('coisa');
   results = [];
   for (i = 0, len = tiros.length; i < len; i++) {
     tiro = tiros[i];
+    for (j = 0, len1 = asteroides.length; j < len1; j++) {
+      ast = asteroides[j];
+      dx = tiro.pos.x - ast.pos.x;
+      dy = tiro.pos.y - ast.pos.y;
+      dz = tiro.pos.z - ast.pos.z;
+      distancia = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      raio_colisao = tiro.radius + ast.radius;
+      if (distancia < raio_colisao) {
+        tiro.remove();
+        ast.remove();
+        cria_explosao(ast.pos);
+        if (ast.size > 0.2) {
+          cria_asteroide(ast.pos, ast.size / 2);
+          cria_asteroide(ast.pos, ast.size / 2);
+        }
+        break;
+      }
+    }
     results.push((function() {
-      var j, len1, results1;
+      var k, len2, results1;
       results1 = [];
-      for (j = 0, len1 = asteroides.length; j < len1; j++) {
-        ast = asteroides[j];
-        dx = tiro.pos.x - ast.pos.x;
-        dy = tiro.pos.y - ast.pos.y;
-        dz = tiro.pos.z - ast.pos.z;
+      for (k = 0, len2 = coisas.length; k < len2; k++) {
+        coisa = coisas[k];
+        dx = tiro.pos.x - coisa.pos.x;
+        dy = tiro.pos.y - coisa.pos.y;
+        dz = tiro.pos.z - coisa.pos.z;
         distancia = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        raio_colisao = tiro.radius + ast.radius;
+        raio_colisao = tiro.radius + coisa.radius;
         if (distancia < raio_colisao) {
           tiro.remove();
-          ast.remove();
-          cria_explosao(ast.pos);
-          if (ast.size > 0.2) {
-            cria_asteroide(ast.pos, ast.size / 2);
-            cria_asteroide(ast.pos, ast.size / 2);
-          }
+          coisa.remove();
+          cria_explosao(coisa.pos);
           break;
         } else {
           results1.push(void 0);
