@@ -261,6 +261,7 @@ detectar_colisao = () ->
         cria_explosao(coisa.pos)
         break
 
+
 renderiza = () ->
   processa_movimento()
   detectar_colisao()
