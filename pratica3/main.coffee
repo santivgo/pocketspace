@@ -6,8 +6,8 @@ gr =
   dados_instancias: null
 
 arqs =
-  nave: 'data/nave.ply'
-  asteroide: 'data/asteroide.txt2'
+  nave: 'data/nave.txt2'
+  asteroide: 'data/meteoro.ply'
 
 nave = null
 
@@ -15,12 +15,13 @@ obj_quad = null
 
 teclas = {}
 
-
-
+asteroides_destruidos = 0
+inimigos_destruidos = 0 
 
 
 main = () =>
   c = await wgpu_context_new canvas:'tela', debug:true, transparent:true
+
   c.frame_buffer_format 'color', 'depth'
   c.vertex_format 'xyz', 'rgba', 'uv'
   mat = c.use_mat4x4_format()
@@ -114,6 +115,17 @@ prepara_instancias = () ->
   nave = cria_nave( vec( 3,-2,0 ) ) # x:7 e y:5 da pra faze wrap around
   cria_asteroide( vec( -4,2,0 ) )
 
+cria_novo = (inst) ->
+  switch inst
+    when 'asteroide'
+      cria_asteroide(vec(-7, random_between(-5,5), 0))
+
+    when 'coisa'
+      cria_coisa(vec(-7, random_between(-5,5), 0))
+
+
+
+
 
 cria_nave = (pos) ->
   inst = ls.instance( res.obj(arqs.nave), pipeline:pipe_cor )
@@ -123,11 +135,13 @@ cria_nave = (pos) ->
   inst.vel = vec( 0,0,0 )
   inst.ang = 0
   inst.frente = vec( 0,1,0 )
+  inst.radius = 0.6
+
 
   return inst
 
 
-cria_asteroide = (pos, size = 0.5) ->
+cria_asteroide = (pos, size = 0.17) ->
   min_pos = vec( -3,-3, 0 )
   max_pos = vec( +3,+3, 0 )
 
@@ -143,10 +157,10 @@ cria_asteroide = (pos, size = 0.5) ->
   ast.set_class( 'asteroide' )
 
   ast.pos = pos
-  ast.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.1) 
+  ast.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.2) 
   ast.ang = random(90)
   ast.size = size
-  ast.radius = ast.size * 0.7
+  ast.radius = ast.size * 1.5
 
   return ast
 
@@ -200,6 +214,8 @@ cria_coisa = (pos) ->
   coisa.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.1) 
 
   coisa.size = 1.0
+  coisa.radius = coisa.size * 0.7  
+
 
   return coisa
 
@@ -239,6 +255,13 @@ prepara_teclado_eventos = () ->
   document.addEventListener 'keydown', on_keydown
   document.addEventListener 'keyup', on_keyup
 
+random_between = (min, max) ->
+  Math.random() * (max - min) + min
+
+random_or = (another, other) ->
+  Math.random() < 0.5 ? another : other
+
+
 
 on_keydown = (event) ->
   if event.key == ' ' then event.preventDefault()
@@ -259,28 +282,61 @@ apertou_tecla = (key) ->
   if apertou
     teclas[ key ] = 2
 
+bateu = (inst1, inst2) -> 
+  dx = inst1.pos.x - inst2.pos.x
+  dy = inst1.pos.y - inst2.pos.y
+  dz = inst1.pos.z - inst2.pos.z
+  distancia = Math.sqrt(dx*dx + dy*dy + dz*dz)
+        
+  raio_colisao = inst1.radius + inst2.radius
+        
+  return distancia < raio_colisao
+
 detectar_colisao = () ->
   tiros = ls.get_instances_by_class( 'tiro' )
   asteroides = ls.get_instances_by_class( 'asteroide' )
+  inimigos = ls.get_instances_by_class( 'coisa' )
+
+
+  for inimigo in inimigos
+    if bateu(nave, inimigo)
+      nave.remove() 
+      inimigo.remove()
+      cria_explosao(nave.pos)
+      break
+    
+  for ast in asteroides
+    if bateu(nave, ast)
+      nave.remove() 
+      ast.remove()
+      cria_explosao(nave.pos)
+      break
 
   for tiro in tiros
     for ast in asteroides
-      dx = tiro.pos.x - ast.pos.x
-      dy = tiro.pos.y - ast.pos.y
-      dz = tiro.pos.z - ast.pos.z
-      distancia = Math.sqrt(dx*dx + dy*dy + dz*dz)
-      
-      raio_colisao = tiro.radius + ast.radius
-      
-      if distancia < raio_colisao
+      if bateu(tiro, ast)
         tiro.remove() 
         ast.remove()
         cria_explosao(ast.pos)
-        if(ast.size > 0.2)
-          cria_asteroide(ast.pos, ast.size/2)
-          cria_asteroide(ast.pos, ast.size/2)
-        break
+        asteroides_destruidos+=1
+        if(ast.size > 0.1)
+          cria_asteroide(ast.pos, random_between(0.06, ast.size/1.3))
+          cria_asteroide(ast.pos, random_between(0.06, ast.size/1.3))
+          break
 
+
+      
+        
+    for inimigo in inimigos
+      
+      if bateu(tiro, inimigo)
+        tiro.remove() 
+        inimigo.remove()
+        cria_explosao(inimigo.pos)
+        inimigos_destruidos+=1
+
+        break
+  
 renderiza = () ->
   processa_movimento()
   detectar_colisao()
@@ -296,10 +352,10 @@ renderiza = () ->
 
 ajuste = (pos) ->
 # x:7 e y:5 da pra faze wrap around
-  if pos.x > 6.7 || pos.x < -6.7
+  if pos.x > 7 || pos.x < -7
     pos.x *= -1
   
-  if pos.y > 4.6 || pos.y < -4.6
+  if pos.y > 5 || pos.y < -5
     pos.y *= -1
 
   return pos
@@ -308,9 +364,15 @@ ajuste = (pos) ->
 processa_movimento = () ->
   fator = 0.1
 
-
-
   asteroides = ls.get_instances_by_class( 'asteroide' )
+  if (asteroides.length == 0)
+    cria_novo('asteroide')
+    cria_novo('asteroide')
+    cria_novo('coisa')
+
+
+
+  
   for ast in asteroides
     ast.pos = ajuste(ast.pos.add( ast.vel.mul_by_scalar(fator) ))
 
@@ -321,6 +383,8 @@ processa_movimento = () ->
 
 
   coisas = ls.get_instances_by_class( 'coisa' )
+
+
   for coisa in coisas
     coisa.pos = ajuste(coisa.pos.add( coisa.vel.mul_by_scalar(fator) ))
 

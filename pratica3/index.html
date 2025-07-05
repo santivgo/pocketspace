@@ -14,13 +14,92 @@
     }
 
     body {
-      background: linear-gradient(#1d1d1d, #3e033c, #492d26);
+      background: radial-gradient(1px 1px at 5% 10%, white 100%, transparent),
+        radial-gradient(1px 1px at 15% 30%, white 100%, transparent),
+        radial-gradient(1px 1px at 20% 50%, white 100%, transparent),
+        radial-gradient(1px 1px at 25% 80%, white 100%, transparent),
+        radial-gradient(1px 1px at 30% 20%, white 100%, transparent),
+        radial-gradient(1px 1px at 35% 65%, white 100%, transparent),
+        radial-gradient(1px 1px at 40% 15%, white 100%, transparent),
+        radial-gradient(1px 1px at 45% 75%, white 100%, transparent),
+        radial-gradient(1px 1px at 50% 40%, white 100%, transparent),
+        radial-gradient(1px 1px at 55% 60%, white 100%, transparent),
+        radial-gradient(1px 1px at 60% 10%, white 100%, transparent),
+        radial-gradient(1px 1px at 65% 30%, white 100%, transparent),
+        radial-gradient(1px 1px at 70% 50%, white 100%, transparent),
+        radial-gradient(1px 1px at 75% 85%, white 100%, transparent),
+        radial-gradient(1px 1px at 80% 25%, white 100%, transparent),
+        radial-gradient(1px 1px at 85% 70%, white 100%, transparent),
+        radial-gradient(1px 1px at 90% 40%, white 100%, transparent),
+        radial-gradient(1px 1px at 95% 60%, white 100%, transparent),
+        radial-gradient(1px 1px at 98% 15%, white 100%, transparent),
+        radial-gradient(1px 1px at 10% 90%, white 100%, transparent),
+        linear-gradient(#030303, #0b1e39, #030303);
       display: grid;
       place-items: center;
     }
 
     #tela {
-      background: linear-gradient(#000000, #3e033c, #f67c5c);
+      background:
+        radial-gradient(1px 1px at 5% 10%, white 100%, transparent),
+        radial-gradient(1px 1px at 15% 30%, white 100%, transparent),
+        radial-gradient(1px 1px at 20% 50%, white 100%, transparent),
+        radial-gradient(1px 1px at 25% 80%, white 100%, transparent),
+        radial-gradient(1px 1px at 30% 20%, white 100%, transparent),
+        radial-gradient(1px 1px at 35% 65%, white 100%, transparent),
+        radial-gradient(1px 1px at 40% 15%, white 100%, transparent),
+        radial-gradient(1px 1px at 45% 75%, white 100%, transparent),
+        radial-gradient(1px 1px at 50% 40%, white 100%, transparent),
+        radial-gradient(1px 1px at 55% 60%, white 100%, transparent),
+        radial-gradient(1px 1px at 60% 10%, white 100%, transparent),
+        radial-gradient(1px 1px at 65% 30%, white 100%, transparent),
+        radial-gradient(1px 1px at 70% 50%, white 100%, transparent),
+        radial-gradient(1px 1px at 75% 85%, white 100%, transparent),
+        radial-gradient(1px 1px at 80% 25%, white 100%, transparent),
+        radial-gradient(1px 1px at 85% 70%, white 100%, transparent),
+        radial-gradient(1px 1px at 90% 40%, white 100%, transparent),
+        radial-gradient(1px 1px at 95% 60%, white 100%, transparent),
+        radial-gradient(1px 1px at 98% 15%, white 100%, transparent),
+        radial-gradient(1px 1px at 10% 90%, white 100%, transparent),
+
+        linear-gradient(180deg,
+          #030303 0%,
+          /* preto profundo */
+          #030303 10%,
+          /* mantém o preto dominante */
+          #121c2c 65%,
+          /* cinza azulado intermediário */
+          #0b1e39 85%,
+          /* azul escuro atmosférico */
+          #3e2e23 95%,
+          /* marrom escuro, pouco presente */
+          hsl(33, 21%, 41%) 100%
+          /* marrom mais claro, só um toque */
+        );
+    }
+
+    p {
+      margin: 0;
+      padding: 0;
+    }
+
+    #tela::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, #ffffff 50%, transparent 50%),
+        radial-gradient(1px 1px at 30% 40%, #ffffff 50%, transparent 50%),
+        radial-gradient(1px 1px at 70% 10%, #ffffff 50%, transparent 50%),
+        radial-gradient(1px 1px at 80% 90%, #ffffff 50%, transparent 50%),
+        radial-gradient(1px 1px at 50% 70%, #ffffff 50%, transparent 50%),
+        radial-gradient(1px 1px at 60% 30%, #ffffff 50%, transparent 50%);
+      background-repeat: no-repeat;
+      z-index: 1;
+      pointer-events: none;
     }
   </style>
 </head>
