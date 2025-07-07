@@ -227,7 +227,7 @@ if typeof window isnt 'undefined'
       u2.Kspec = phong_material.Kspec
       u2.gpu_send()
 
-  for id in ['light-x','light-y','light-z','ambient-color','diffuse-color','specular-color']
+  for id in ['light-x','light-y','light-z','ambiente','difusa','specular']
     getInput(id)?.addEventListener 'input', atualiza_luz_material
 
 main()
