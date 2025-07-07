@@ -203,5 +203,31 @@ renderiza = () ->
   c.animation_repeat renderiza, 20
 
 
+if typeof window isnt 'undefined'
+  getInput = (id) -> document.getElementById(id)
+  hex_to_vec3 = (hex) =>
+    rgb = hex_to_rgb(hex)
+    vec(rgb.x, rgb.y, rgb.z)
+
+  atualiza_luz_material = ->
+    x = parseFloat(getInput('light-x').value)
+    y = parseFloat(getInput('light-y').value)
+    z = parseFloat(getInput('light-z').value)
+    phong_luzes[0].pos = vec(x, y, z)
+    phong_material.Kamb = hex_to_vec3(getInput('ambiente').value)
+    phong_material.Kdif = hex_to_vec3(getInput('difusa').value)
+    phong_material.Kspec = hex_to_vec3(getInput('specular').value)
+    if gr?.dados_globais and gr?.dados_material
+      u = gr.dados_globais.binding(0).get_uniform()
+      u.light_pos[0] = phong_luzes[0].pos
+      u.gpu_send()
+      u2 = gr.dados_material.binding(0).get_uniform()
+      u2.Kamb = phong_material.Kamb
+      u2.Kdif = phong_material.Kdif
+      u2.Kspec = phong_material.Kspec
+      u2.gpu_send()
+
+  for id in ['light-x','light-y','light-z','ambient-color','diffuse-color','specular-color']
+    getInput(id)?.addEventListener 'input', atualiza_luz_material
 
 main()
