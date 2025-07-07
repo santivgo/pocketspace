@@ -288,9 +288,10 @@ bateu = function(inst1, inst2) {
 };
 
 detectar_colisao = function() {
-  var ast, asteroides, i, inimigo, inimigos, j, k, l, len, len1, len2, len3, results, tiro, tiros;
+  var ast, asteroides, coisa, coisas, distancia, dx, dy, dz, i, inimigo, inimigos, j, k, l, len, len1, len2, len3, len4, m, raio_colisao, results, tiro, tiros;
   tiros = ls.get_instances_by_class('tiro');
   asteroides = ls.get_instances_by_class('asteroide');
+  coisas = ls.get_instances_by_class('coisa');
   inimigos = ls.get_instances_by_class('coisa');
   for (i = 0, len = inimigos.length; i < len; i++) {
     inimigo = inimigos[i];
@@ -319,6 +320,25 @@ detectar_colisao = function() {
         tiro.remove();
         ast.remove();
         cria_explosao(ast.pos);
+        if (ast.size > 0.2) {
+          cria_asteroide(ast.pos, ast.size / 2);
+          cria_asteroide(ast.pos, ast.size / 2);
+        }
+        break;
+      }
+    }
+    for (m = 0, len4 = coisas.length; m < len4; m++) {
+      coisa = coisas[m];
+      dx = tiro.pos.x - coisa.pos.x;
+      dy = tiro.pos.y - coisa.pos.y;
+      dz = tiro.pos.z - coisa.pos.z;
+      distancia = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      raio_colisao = tiro.radius + coisa.radius;
+      if (distancia < raio_colisao) {
+        tiro.remove();
+        coisa.remove();
+        cria_explosao(coisa.pos);
+        break;
         asteroides_destruidos += 1;
         if (ast.size > 0.1) {
           cria_asteroide(ast.pos, random_between(0.06, ast.size / 1.3));
@@ -328,16 +348,15 @@ detectar_colisao = function() {
       }
     }
     results.push((function() {
-      var len4, m, results1;
+      var len5, n, results1;
       results1 = [];
-      for (m = 0, len4 = inimigos.length; m < len4; m++) {
-        inimigo = inimigos[m];
+      for (n = 0, len5 = inimigos.length; n < len5; n++) {
+        inimigo = inimigos[n];
         if (bateu(tiro, inimigo)) {
           tiro.remove();
           inimigo.remove();
           cria_explosao(inimigo.pos);
           inimigos_destruidos += 1;
-
           break;
         } else {
           results1.push(void 0);
