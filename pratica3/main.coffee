@@ -6,8 +6,8 @@ gr =
   dados_instancias: null
 
 arqs =
-  nave: 'data/nave.ply'
-  asteroide: 'data/asteroide.txt2'
+  nave: 'data/nave.txt2'
+  asteroide: 'data/meteoro.ply'
 
 nave = null
 
@@ -15,19 +15,24 @@ obj_quad = null
 
 teclas = {}
 
+asteroides_destruidos = 0
+inimigos_destruidos = 0 
 
 
 main = () =>
   c = await wgpu_context_new canvas:'tela', debug:true, transparent:true
+
   c.frame_buffer_format 'color', 'depth'
   c.vertex_format 'xyz', 'rgba', 'uv'
   mat = c.use_mat4x4_format()
+
 
   await carrega_dados()
   prepara_shader_data_groups()
   prepara_pipelines()
   prepara_instancias()
   prepara_teclado_eventos()
+  toca_som('trilha')
   
   job = c.job()
   renderiza()
@@ -107,8 +112,19 @@ prepara_instancias = () ->
     instance_index: 2, instance_group: gr.dados_instancias
   )
 
-  nave = cria_nave( vec( 3,-2,0 ) )
+  nave = cria_nave( vec( 3,-2,0 ) ) # x:7 e y:5 da pra faze wrap around
   cria_asteroide( vec( -4,2,0 ) )
+
+cria_novo = (inst) ->
+  switch inst
+    when 'asteroide'
+      cria_asteroide(vec(-7, random_between(-5,5), 0))
+
+    when 'coisa'
+      cria_coisa(vec(-7, random_between(-5,5), 0))
+
+
+
 
 
 cria_nave = (pos) ->
@@ -119,11 +135,13 @@ cria_nave = (pos) ->
   inst.vel = vec( 0,0,0 )
   inst.ang = 0
   inst.frente = vec( 0,1,0 )
+  inst.radius = 0.6
+
 
   return inst
 
 
-cria_asteroide = (pos, size = 0.5) ->
+cria_asteroide = (pos, size = 0.17) ->
   min_pos = vec( -3,-3, 0 )
   max_pos = vec( +3,+3, 0 )
 
@@ -139,10 +157,10 @@ cria_asteroide = (pos, size = 0.5) ->
   ast.set_class( 'asteroide' )
 
   ast.pos = pos
-  ast.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.1) 
+  ast.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.2) 
   ast.ang = random(90)
   ast.size = size
-  ast.radius = ast.size * 0.7
+  ast.radius = ast.size * 1.5
 
   return ast
 
@@ -167,7 +185,7 @@ cria_explosao = (pos) ->
   inst.pos = pos
   inst.size = 2.0
   inst.start_animation_from_materials(
-    'data/explosao2/explosao[0-7].png',
+    'data/explosao1/explosao[0-6].png',
     gr.dados_materiais,
     on_animation_end: (inst) ->
       inst.remove()
@@ -196,14 +214,53 @@ cria_coisa = (pos) ->
   coisa.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.1) 
   coisa.radius = 0.7
   coisa.size = 1.0
+  coisa.radius = coisa.size * 0.7  
+
 
   return coisa
 
+toca_som = (inst) ->
+  audioContext = new AudioContext();
+  source = audioContext.createBufferSource();
+  gainNode = audioContext.createGain();
+  analyser = audioContext.createAnalyser();
+  
+  switch inst
+    when 'tiro'
+      response = await fetch('data/sounds/shoot.mp3');
+      gainNode.gain.value = 0.1
+    when 'trilha'
+      response = await fetch('data/sounds/trilha.mp3');
+      gainNode.gain.value = 0.06
+      source.loop = true;
+
+
+
+  arrayBuffer = await response.arrayBuffer();
+  audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+
+
+  source.buffer = audioBuffer;
+
+
+  source.connect(gainNode)
+  gainNode.connect(analyser);
+  analyser.connect(audioContext.destination);
+
+  source.start();
 
 
 prepara_teclado_eventos = () ->
   document.addEventListener 'keydown', on_keydown
   document.addEventListener 'keyup', on_keyup
+
+random_between = (min, max) ->
+  Math.random() * (max - min) + min
+
+random_or = (another, other) ->
+  Math.random() < 0.5 ? another : other
+
 
 
 on_keydown = (event) ->
@@ -225,24 +282,45 @@ apertou_tecla = (key) ->
   if apertou
     teclas[ key ] = 2
 
+bateu = (inst1, inst2) -> 
+  dx = inst1.pos.x - inst2.pos.x
+  dy = inst1.pos.y - inst2.pos.y
+  dz = inst1.pos.z - inst2.pos.z
+  distancia = Math.sqrt(dx*dx + dy*dy + dz*dz)
+        
+  raio_colisao = inst1.radius + inst2.radius
+        
+  return distancia < raio_colisao
+
 detectar_colisao = () ->
   tiros = ls.get_instances_by_class( 'tiro' )
   asteroides = ls.get_instances_by_class( 'asteroide' )
+
   coisas = ls.get_instances_by_class( 'coisa' )
+  inimigos = ls.get_instances_by_class( 'coisa' )
+
+
+  for inimigo in inimigos
+    if bateu(nave, inimigo)
+      nave.remove() 
+      inimigo.remove()
+      cria_explosao(nave.pos)
+      break
+    
+  for ast in asteroides
+    if bateu(nave, ast)
+      nave.remove() 
+      ast.remove()
+      cria_explosao(nave.pos)
+      break
 
   for tiro in tiros
     for ast in asteroides
-      dx = tiro.pos.x - ast.pos.x
-      dy = tiro.pos.y - ast.pos.y
-      dz = tiro.pos.z - ast.pos.z
-      distancia = Math.sqrt(dx*dx + dy*dy + dz*dz)
-      
-      raio_colisao = tiro.radius + ast.radius
-      
-      if distancia < raio_colisao
+      if bateu(tiro, ast)
         tiro.remove() 
         ast.remove()
         cria_explosao(ast.pos)
+        
         if(ast.size > 0.2)
           cria_asteroide(ast.pos, ast.size/2)
           cria_asteroide(ast.pos, ast.size/2)
@@ -261,7 +339,26 @@ detectar_colisao = () ->
         cria_explosao(coisa.pos)
         break
 
+        asteroides_destruidos+=1
+        if(ast.size > 0.1)
+          cria_asteroide(ast.pos, random_between(0.06, ast.size/1.3))
+          cria_asteroide(ast.pos, random_between(0.06, ast.size/1.3))
+          break
 
+
+
+      
+        
+    for inimigo in inimigos
+      
+      if bateu(tiro, inimigo)
+        tiro.remove() 
+        inimigo.remove()
+        cria_explosao(inimigo.pos)
+        inimigos_destruidos+=1
+
+        break
+  
 renderiza = () ->
   processa_movimento()
   detectar_colisao()
@@ -275,12 +372,31 @@ renderiza = () ->
   c.animation_repeat renderiza, 10
 
 
+ajuste = (pos) ->
+# x:7 e y:5 da pra faze wrap around
+  if pos.x > 7 || pos.x < -7
+    pos.x *= -1
+  
+  if pos.y > 5 || pos.y < -5
+    pos.y *= -1
+
+  return pos
+
+
 processa_movimento = () ->
   fator = 0.1
 
   asteroides = ls.get_instances_by_class( 'asteroide' )
+  if (asteroides.length == 0)
+    cria_novo('asteroide')
+    cria_novo('asteroide')
+    cria_novo('coisa')
+
+
+
+  
   for ast in asteroides
-    ast.pos = ast.pos.add( ast.vel.mul_by_scalar(fator) )
+    ast.pos = ajuste(ast.pos.add( ast.vel.mul_by_scalar(fator) ))
 
 
   tiros = ls.get_instances_by_class( 'tiro' )
@@ -289,8 +405,10 @@ processa_movimento = () ->
 
 
   coisas = ls.get_instances_by_class( 'coisa' )
+
+
   for coisa in coisas
-    coisa.pos = coisa.pos.add( coisa.vel.mul_by_scalar(fator) )
+    coisa.pos = ajuste(coisa.pos.add( coisa.vel.mul_by_scalar(fator) ))
 
 
   ang_inc = 3
@@ -312,6 +430,7 @@ processa_movimento = () ->
 
   if apertou_tecla( ' ' ) 
     cria_tiro( nave )
+    toca_som( 'tiro' )
 
   
   if apertou_tecla( 'a' )
@@ -322,8 +441,6 @@ processa_movimento = () ->
     cria_coisa()
   
   if apertou_tecla('e')
-    cria_explosao(inst.pos)
-
     cria_explosao(vec_random())
 
 
@@ -334,7 +451,7 @@ processa_movimento = () ->
   if y_inc != 0
     nave.vel = nave.vel.add( nave.frente.mul_by_scalar(fator*y_inc) )
 
-  nave.pos = nave.pos.add( nave.vel.mul_by_scalar(fator) )
+  nave.pos = ajuste(nave.pos.add( nave.vel.mul_by_scalar(fator) ))
 
 
   nave.vel = nave.vel.mul_by_scalar( 0.95 )
@@ -348,10 +465,6 @@ TRS = (pos, ang,rx,ry,rz, scale_factor) ->
   T = mat.translate pos
   return mat.mul T, R, S
 
-# ajusta(pos)
-#   if pos.x > 1000
-#     pos.x 
-  #   nave.pos = mul_by_scalar(nave.pos, -1)
 
 atualiza_uniforms = () ->
 
