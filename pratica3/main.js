@@ -22,9 +22,92 @@
 
   teclas = {};
 
+<<<<<<< HEAD
   asteroides_destruidos = 0;
 
   inimigos_destruidos = 0;
+=======
+detectar_colisao = function() {
+  var ast, asteroides, coisa, coisas, distancia, dx, dy, dz, i, inimigo, inimigos, j, k, l, len, len1, len2, len3, len4, m, raio_colisao, results, tiro, tiros;
+  tiros = ls.get_instances_by_class('tiro');
+  asteroides = ls.get_instances_by_class('asteroide');
+  coisas = ls.get_instances_by_class('coisa');
+  inimigos = ls.get_instances_by_class('coisa');
+  for (i = 0, len = inimigos.length; i < len; i++) {
+    inimigo = inimigos[i];
+    if (bateu(nave, inimigo)) {
+      nave.remove();
+      inimigo.remove();
+      cria_explosao(nave.pos);
+      break;
+    }
+  }
+  for (j = 0, len1 = asteroides.length; j < len1; j++) {
+    ast = asteroides[j];
+    if (bateu(nave, ast)) {
+      nave.remove();
+      ast.remove();
+      cria_explosao(nave.pos);
+      break;
+    }
+  }
+  results = [];
+  for (k = 0, len2 = tiros.length; k < len2; k++) {
+    tiro = tiros[k];
+    for (l = 0, len3 = asteroides.length; l < len3; l++) {
+      ast = asteroides[l];
+      if (bateu(tiro, ast)) {
+        tiro.remove();
+        ast.remove();
+        cria_explosao(ast.pos);
+        if (ast.size > 0.2) {
+          cria_asteroide(ast.pos, ast.size / 2);
+          cria_asteroide(ast.pos, ast.size / 2);
+        }
+        break;
+      }
+    }
+    for (m = 0, len4 = coisas.length; m < len4; m++) {
+      coisa = coisas[m];
+      dx = tiro.pos.x - coisa.pos.x;
+      dy = tiro.pos.y - coisa.pos.y;
+      dz = tiro.pos.z - coisa.pos.z;
+      distancia = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      raio_colisao = tiro.radius + coisa.radius;
+      if (distancia < raio_colisao) {
+        tiro.remove();
+        coisa.remove();
+        cria_explosao(coisa.pos);
+        break;
+        asteroides_destruidos += 1;
+        if (ast.size > 0.1) {
+          cria_asteroide(ast.pos, random_between(0.06, ast.size / 1.3));
+          cria_asteroide(ast.pos, random_between(0.06, ast.size / 1.3));
+          break;
+        }
+      }
+    }
+    results.push((function() {
+      var len5, n, results1;
+      results1 = [];
+      for (n = 0, len5 = inimigos.length; n < len5; n++) {
+        inimigo = inimigos[n];
+        if (bateu(tiro, inimigo)) {
+          tiro.remove();
+          inimigo.remove();
+          cria_explosao(inimigo.pos);
+          inimigos_destruidos += 1;
+          break;
+        } else {
+          results1.push(void 0);
+        }
+      }
+      return results1;
+    })());
+  }
+  return results;
+};
+>>>>>>> 1be1364 (n sei oq foi mas blz)
 
   main = async() => {
     c = (await wgpu_context_new({
