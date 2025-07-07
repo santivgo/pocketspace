@@ -195,6 +195,7 @@ cria_coisa = function(pos) {
   coisa.set_class('coisa');
   coisa.pos = pos;
   coisa.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.1);
+  coisa.radius = 0.7;
   coisa.size = 1.0;
   coisa.radius = coisa.size * 0.7;
   return coisa;
@@ -328,6 +329,7 @@ detectar_colisao = function() {
           inimigo.remove();
           cria_explosao(inimigo.pos);
           inimigos_destruidos += 1;
+
           break;
         } else {
           results1.push(void 0);

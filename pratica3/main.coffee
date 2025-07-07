@@ -212,7 +212,7 @@ cria_coisa = (pos) ->
 
   coisa.pos = pos
   coisa.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.1) 
-
+  coisa.radius = 0.7
   coisa.size = 1.0
   coisa.radius = coisa.size * 0.7  
 
@@ -295,6 +295,8 @@ bateu = (inst1, inst2) ->
 detectar_colisao = () ->
   tiros = ls.get_instances_by_class( 'tiro' )
   asteroides = ls.get_instances_by_class( 'asteroide' )
+
+  coisas = ls.get_instances_by_class( 'coisa' )
   inimigos = ls.get_instances_by_class( 'coisa' )
 
 
@@ -318,11 +320,31 @@ detectar_colisao = () ->
         tiro.remove() 
         ast.remove()
         cria_explosao(ast.pos)
+        
+        if(ast.size > 0.2)
+          cria_asteroide(ast.pos, ast.size/2)
+          cria_asteroide(ast.pos, ast.size/2)
+        break
+    for coisa in coisas
+      dx = tiro.pos.x - coisa.pos.x
+      dy = tiro.pos.y - coisa.pos.y
+      dz = tiro.pos.z - coisa.pos.z
+      distancia = Math.sqrt(dx*dx + dy*dy + dz*dz)
+      
+      raio_colisao = tiro.radius + coisa.radius
+      
+      if distancia < raio_colisao
+        tiro.remove() 
+        coisa.remove()
+        cria_explosao(coisa.pos)
+        break
+
         asteroides_destruidos+=1
         if(ast.size > 0.1)
           cria_asteroide(ast.pos, random_between(0.06, ast.size/1.3))
           cria_asteroide(ast.pos, random_between(0.06, ast.size/1.3))
           break
+
 
 
       
