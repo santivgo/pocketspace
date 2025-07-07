@@ -5,6 +5,10 @@
   <meta charset="utf-8" />
   <title>Exemplo</title>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Press+Start+2P&display=swap"
+    rel="stylesheet">
   <style>
     html,
     body {
@@ -12,6 +16,7 @@
       padding: 0;
       margin: 0;
     }
+
 
     body {
       background: radial-gradient(1px 1px at 5% 10%, white 100%, transparent),
@@ -78,9 +83,39 @@
         );
     }
 
-    p {
-      margin: 0;
-      padding: 0;
+    h3,
+    h1,
+    h2 {
+      margin-top: 0;
+      margin-bottom: 0;
+
+    }
+
+    h1,
+    .title {
+      font-family: "Press Start 2P", system-ui;
+      font-weight: 400;
+      font-style: normal;
+      color: white;
+      width: 100%;
+      text-align: center
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .title {
+      font-size: small;
+      color: white
+    }
+
+    .subtitle {
+      font-family: "Pixelify Sans", sans-serif;
+      font-optical-sizing: auto;
+      font-weight: 400;
+      font-style: normal;
+
     }
 
     #tela::before {
@@ -105,6 +140,15 @@
 </head>
 
 <body>
+  <div class="title">
+    <h1>POCKETSPACE</h1>
+    <h3 class="subtitle">made with <img
+        src="https://static.vecteezy.com/system/resources/thumbnails/012/658/366/small_2x/heart-shaped-love-icon-symbol-for-pictogram-app-website-logo-or-graphic-design-element-pixel-art-style-illustration-format-png.png"
+        style="height: 1.4em;" alt=""> by alex, alysson e sant para <strong>Ricardo Lenz</strong> </p>
+      <h2>SCORE: <span id="score">0</span></h2>
+
+  </div>
+
   <canvas id="tela" width="800" height="500"></canvas>
   <script src="../lib_webgpu.min.js"></script>
   <script src="main.js"></script>

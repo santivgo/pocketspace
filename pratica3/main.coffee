@@ -72,6 +72,13 @@ prepara_shader_data_groups = () ->
 
 
 
+atualiza_score = () ->
+  try
+    scoreElemento = document.getElementById('score')
+    scoreElemento.textContent = (asteroides_destruidos + inimigos_destruidos).toString()
+
+
+
 
 prepara_pipelines = () ->
   pipe_cor = c.pipeline()
@@ -319,6 +326,7 @@ detectar_colisao = () ->
         ast.remove()
         cria_explosao(ast.pos)
         asteroides_destruidos+=1
+
         if(ast.size > 0.1)
           cria_asteroide(ast.pos, random_between(0.06, ast.size/1.3))
           cria_asteroide(ast.pos, random_between(0.06, ast.size/1.3))
@@ -346,6 +354,8 @@ renderiza = () ->
   job.render_instance_list( ls )
   job.render_end()
   job.gpu_send()
+  atualiza_score()
+
 
   c.animation_repeat renderiza, 10
 
@@ -386,7 +396,7 @@ processa_movimento = () ->
 
 
   for coisa in coisas
-    coisa.pos = ajuste(coisa.pos.add( coisa.vel.mul_by_scalar(fator) ))
+    coisa.pos = ajuste(coisa.pos.add( coisa.vel.mul_by_scalar(0.3) ))
 
 
   ang_inc = 3

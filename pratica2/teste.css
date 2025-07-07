@@ -16,10 +16,10 @@ h2 {
 }
 
 .camera {
-    border: 1px solid #929292;
-    padding: 4px;
-    margin: 4px;
-    background: white;  
+  border: 1px solid #929292;
+  padding: 4px;
+  margin: 4px;
+  background: white;
 }
 
 .camera .cam_header {
@@ -36,4 +36,22 @@ h2 {
   color: #604c4c;
   margin-bottom: 8px;
   white-space: pre;
+}
+
+.light-section {
+  display: flex;
+  flex-direction: column;
+  .control-group {
+    display: flex;
+    flex-direction: row;
+  }
+}
+.selects {
+  display: flex;
+  flex-direction: column;
+}
+
+.left-side {
+  display: flex;
+  flex-direction: row;
 }
