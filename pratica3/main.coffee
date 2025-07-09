@@ -420,6 +420,10 @@ nave_destruida = () ->
 
     document.getElementById('btn-reiniciar').style.display = 'block'
 
+    document.getElementById('ast-destruidos').textContent = asteroides_destruidos
+    document.getElementById('inim-destruidos').textContent = inimigos_destruidos
+    document.getElementById('resultados').style.display = 'block'
+
     return true
 
   return false
