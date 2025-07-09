@@ -371,6 +371,8 @@ bateu = (inst1, inst2) ->
         
   return distancia < raio_colisao
 
+
+
 nave_destruida = () ->
   hp_nave = hp_nave - 1
   piscar_nave()
@@ -627,20 +629,6 @@ atualiza_uniforms = () ->
 
   gr.dados_instancias.gpu_send()
 
-
-nave_destruida = () ->
-  hp_nave = hp_nave - 1
-
-  if coracoes.length > 0
-    ultimo = coracoes.pop()
-    ultimo.remove()
-
-  if hp_nave == 0
-    nave.remove()
-    cria_explosao(nave.pos)
-    return true
-
-  return false
 
 main()
 
