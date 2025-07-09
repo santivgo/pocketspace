@@ -180,7 +180,6 @@
       animation: none;
       opacity: 1;
     }
-
   </style>
 </head>
 
@@ -190,14 +189,14 @@
     <h3 class="subtitle">made with <img
         src="https://static.vecteezy.com/system/resources/thumbnails/012/658/366/small_2x/heart-shaped-love-icon-symbol-for-pictogram-app-website-logo-or-graphic-design-element-pixel-art-style-illustration-format-png.png"
         style="height: 1.4em;" alt=""> by alex, alysson e sant para <strong>Ricardo Lenz</strong> </p>
-      <h2>SCORE: <span id="score">0</span></h2>
+      <h2>LEVEL <span id="level">1</span></h2>
+      <h4>SCORE: <span id="score">0</span></h4>
+
 
   </div>
 
   <canvas id="tela" width="800" height="500"></canvas>
-  
-  <button id="btn-reiniciar" class="piscando" onclick="reiniciar()">Reiniciar Jogo</button>
-
+  <button id="btn-reiniciar" onclick="reiniciar()">Reiniciar Jogo</button>
   <script src="../lib_webgpu.min.js"></script>
   <script src="main.js"></script>
 </body>
