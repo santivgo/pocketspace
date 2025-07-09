@@ -1,4 +1,7 @@
 c = pipe_cor = pipe_tex = job = mat = res = ls = null
+propulsao = null
+
+
 
 gr =
   dados_globais: null
@@ -36,6 +39,8 @@ main = () =>
   prepara_teclado_eventos()
   toca_som('trilha')
   
+
+  
   job = c.job()
   renderiza()
 
@@ -48,8 +53,8 @@ carrega_dados = () ->
     'data/sprites/sp[1-4].png',
     'data/explosao1/explosao[0-6].png',
     'data/explosao2/explosao[0-7].png',
-    'data/propulsao/shrink/[1-6].png',
-
+    'data/propulsao/flicker/[1-6].png',
+    'data/rastro[1-2].png',
     'shader_cor.wgsl', 'shader_tex.wgsl'
   )
   await res.load_all()
@@ -82,7 +87,12 @@ atualiza_score = () ->
     scoreElemento = document.getElementById('score')
     scoreElemento.textContent = (asteroides_destruidos + inimigos_destruidos).toString()
 
-
+loop_propulsao = (inst) ->
+  inst.start_animation_from_materials(
+    'data/propulsao/flicker/[1-6].png',
+    gr.dados_materiais,
+    on_animation_end: loop_propulsao
+  )
 
 
 prepara_pipelines = () ->
@@ -127,7 +137,18 @@ prepara_instancias = () ->
   cria_coracoes()
   nave = cria_nave( vec( 3,-2,0 ) ) # x:7 e y:5 da pra faze wrap around
   cria_asteroide( vec( -4,2,0 ) )
-
+  propulsao = ls.instance(obj_quad, pipeline: pipe_tex)
+  propulsao.set_class('propulsao')
+  propulsao.size = 1
+  propulsao.visivel = false
+  propulsao.start_animation_from_materials( 'data/propulsao/flicker/[1-6].png',gr.dados_materiais,
+  on_animation_end: (inst) => 
+    inst.start_animation_from_materials(
+      'data/propulsao/flicker/[1-6].png',
+      gr.dados_materiais,
+      on_animation_end: loop_propulsao
+    )
+  )
 cria_novo = (inst) ->
   switch inst
     when 'asteroide'
@@ -184,19 +205,6 @@ cria_asteroide = (pos, size = 0.17) ->
   return ast
 
 
-cria_propulsao = (pos) ->
-  inst = ls.instance( obj_quad, pipeline:pipe_tex )
-  inst.set_class( 'propulsao' )
-
-  inst.pos = pos
-  inst.size = 2.0
-  inst.start_animation_from_materials(
-    'data/propulsao/shrink/[1-6].png',
-    gr.dados_materiais,
-    on_animation_end: (inst) ->
-      inst.remove()
-  )
-
 
 cria_tiro = (nave) ->
   inst = ls.instance( obj_quad, pipeline:pipe_tex, material:gr.dados_materiais[0] )
@@ -223,6 +231,7 @@ cria_explosao = (pos) ->
     on_animation_end: (inst) ->
       inst.remove()
   )
+
 
 
 cria_coisa = (pos) ->
@@ -267,6 +276,9 @@ toca_som = (inst) ->
       response = await fetch('data/sounds/trilha.mp3');
       gainNode.gain.value = 0.06
       source.loop = true;
+    when 'colisao'
+      response = await fetch('data/sounds/boom.wav');
+      gainNode.gain.value = 0.06
 
 
 
@@ -316,6 +328,16 @@ apertou_tecla = (key) ->
   if apertou
     teclas[ key ] = 2
 
+piscar_nave = () ->
+  vezes = 0
+  intervalo = setInterval( ->
+    nave.visivel = not nave.visivel
+    vezes += 1
+    if vezes >= 6  # 6 trocas = 3 piscadas
+      clearInterval(intervalo)
+      nave.visivel = true  # garante que termina visível
+  , 50)  
+
 bateu = (inst1, inst2) -> 
   dx = inst1.pos.x - inst2.pos.x
   dy = inst1.pos.y - inst2.pos.y
@@ -328,6 +350,7 @@ bateu = (inst1, inst2) ->
 
 nave_destruida = () ->
   hp_nave = hp_nave - 1
+  piscar_nave()
 
   if coracoes.length > 0
     ultimo = coracoes.pop()
@@ -349,12 +372,16 @@ detectar_colisao = () ->
   for inimigo in inimigos
     if bateu(nave, inimigo)
       inimigo.remove()
+      toca_som('colisao')
+
       if nave_destruida() 
         break 
     
   for ast in asteroides
     if bateu(nave, ast)
       ast.remove()
+      toca_som('colisao')
+
       if nave_destruida()
         break
 
@@ -363,6 +390,7 @@ detectar_colisao = () ->
       if bateu(tiro, ast)
         tiro.remove() 
         ast.remove()
+        toca_som('colisao')
         cria_explosao(ast.pos)
         asteroides_destruidos+=1
 
@@ -380,8 +408,8 @@ detectar_colisao = () ->
         tiro.remove() 
         inimigo.remove()
         cria_explosao(inimigo.pos)
+        toca_som('colisao')
         inimigos_destruidos+=1
-
         break
   
 renderiza = () ->
@@ -478,8 +506,14 @@ processa_movimento = () ->
 
   
   if y_inc == 1  # Se está acelerando para frente
-    pos_propulsao = nave.pos.add(nave.frente.mul_by_scalar(-0.6))  # Atrás da nave
-    cria_propulsao(nave.pos)
+    propulsao.visivel = true
+    propulsao.pos = nave.pos.add(nave.frente.mul_by_scalar(-0.8))
+    propulsao.ang = nave.ang + Math.PI  # Rotaciona 180 graus para ficar atrás da nave
+
+  else
+    propulsao.visivel = false
+
+
 
   
   if y_inc == -1
@@ -540,7 +574,10 @@ atualiza_uniforms = () ->
         u.model = TRS inst.pos, 0,0,0,0, inst.size
 
       when 'nave'        
-        u.model = TRS nave.pos, nave.ang,0,0,1, 0.3
+        if inst.visivel == false
+          u.model = mat.scale(0)
+        else
+          u.model = TRS nave.pos, nave.ang,0,0,1, 0.3
 
       when 'asteroide'
         u.model = TRS inst.pos, inst.ang,1,1,1, inst.size
@@ -549,6 +586,12 @@ atualiza_uniforms = () ->
       when 'tiro'
         u.model = TRS inst.pos, inst.ang,0,0,1, 1.0
         inst.ang = inst.ang + 1
+      
+      when 'propulsao'
+        if inst.visivel == false
+          u.model = mat.scale(0)
+        else
+          u.model = TRS inst.pos, inst.ang, 0,0,1, inst.size
 
       when 'coisa', 'explosao'
         u.model = TRS inst.pos, 0,0,0,0, inst.size
