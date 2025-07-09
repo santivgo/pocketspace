@@ -137,6 +137,33 @@
       z-index: 1;
       pointer-events: none;
     }
+
+    #btn-reiniciar {
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      font-family: "Press Start 2P", system-ui;
+      color: #fff;
+      background: linear-gradient(to bottom, #222 0%, #444 100%);
+      border: 4px solid #fff;
+      box-shadow: 0 0 20px #00f inset;
+      cursor: pointer;
+      text-shadow: 1px 1px 2px #000;
+      border-radius: 8px;
+      display: none;
+      transition: all 0.3s ease;
+    }
+
+    #btn-reiniciar:hover {
+      background: linear-gradient(to bottom, #444 0%, #666 100%);
+      box-shadow: 0 0 20px #f00 inset;
+      color: #ff0;
+    }
+
+
   </style>
 </head>
 
@@ -151,6 +178,9 @@
   </div>
 
   <canvas id="tela" width="800" height="500"></canvas>
+  
+  <button id="btn-reiniciar" onclick="reiniciar()">Reiniciar Jogo</button>
+
   <script src="../lib_webgpu.min.js"></script>
   <script src="main.js"></script>
 </body>

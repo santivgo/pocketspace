@@ -336,6 +336,9 @@ nave_destruida = () ->
   if hp_nave == 0
     nave.remove() 
     cria_explosao(nave.pos)
+
+    document.getElementById('btn-reiniciar').style.display = 'block'
+
     return true
 
   return false
@@ -559,3 +562,6 @@ atualiza_uniforms = () ->
 
 
 main()
+
+window.reiniciar = () =>
+  location.reload()
