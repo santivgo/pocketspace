@@ -162,6 +162,24 @@
       box-shadow: 0 0 20px #f00 inset;
       color: #ff0;
     }
+
+    @keyframes brilho {
+      0%, 100% {
+        filter: brightness(1);
+      }
+      50% {
+        filter: brightness(1.8);
+      }
+    }
+
+    #btn-reiniciar.piscando {
+      animation: brilho 1.5s infinite ease-in-out;
+    }
+
+    #btn-reiniciar.piscando:hover {
+      animation: none;
+      opacity: 1;
+    }
   </style>
 </head>
 
@@ -178,9 +196,7 @@
   </div>
 
   <canvas id="tela" width="800" height="500"></canvas>
-
   <button id="btn-reiniciar" onclick="reiniciar()">Reiniciar Jogo</button>
-
   <script src="../lib_webgpu.min.js"></script>
   <script src="main.js"></script>
 </body>
