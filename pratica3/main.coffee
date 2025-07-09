@@ -6,7 +6,7 @@ gr =
   dados_instancias: null
 
 arqs =
-  nave: 'data/nave.txt2'
+  nave: 'data/nave.ply'
   asteroide: 'data/meteoro.ply'
 
 nave = null
@@ -222,7 +222,8 @@ cria_coisa = (pos) ->
 
   coisa.size = 1.0
   coisa.radius = coisa.size * 0.7  
-
+  coisa.forca_perseguicao = 0.05  # Força de perseguição
+  coisa.velocidade_maxima = 0.8   # Velocidade máxima
 
   return coisa
 
@@ -370,6 +371,20 @@ ajuste = (pos) ->
 
   return pos
 
+calcular_direcao_para_nave = (inimigo_pos, nave_pos) ->
+
+  dx = nave_pos.x - inimigo_pos.x
+  dy = nave_pos.y - inimigo_pos.y
+
+  # Calcula a distância
+  distancia = Math.sqrt(dx*dx + dy*dy + dz*dz)
+
+  if distancia == 0
+    return vec(0, 0, 0)
+
+  # Normaliza o vetor (direção unitária)
+  return vec(dx/distancia, dy/distancia, dz/distancia)
+
 
 processa_movimento = () ->
   fator = 0.1
@@ -396,7 +411,22 @@ processa_movimento = () ->
 
 
   for coisa in coisas
+    if nave?
+      direcao = calcular_direcao_para_nave(coisa.pos, nave.pos)
+      console.log(direcao)
+    
+      # Aplica força de perseguição
+      forca = direcao.mul_by_scalar(coisa.forca_perseguicao)
+      coisa.vel = coisa.vel.add(forca)
+      
+      # Limita velocidade máxima
+      vel_magnitude = Math.sqrt(coisa.vel.x*coisa.vel.x + coisa.vel.y*coisa.vel.y)
+      if vel_magnitude > coisa.velocidade_maxima
+        coisa.vel = coisa.vel.mul_by_scalar(coisa.velocidade_maxima / vel_magnitude)
+  
     coisa.pos = ajuste(coisa.pos.add( coisa.vel.mul_by_scalar(0.3) ))
+    coisa.vel = coisa.vel.mul_by_scalar(0.98)
+
 
 
   ang_inc = 3
