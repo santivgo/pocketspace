@@ -140,7 +140,7 @@
 
     #btn-reiniciar {
       position: absolute;
-      top: 60%;
+      top: 70%;
       left: 50%;
       transform: translate(-50%, -50%);
       padding: 1rem 2rem;
@@ -180,6 +180,18 @@
       animation: none;
       opacity: 1;
     }
+
+    #resultados{
+      display: none;
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      text-align: center; 
+      font-family: 'Press Start 2P', system-ui; 
+      margin-top: 20px;
+    }   
   </style>
 </head>
 
@@ -196,7 +208,13 @@
   </div>
 
   <canvas id="tela" width="800" height="500"></canvas>
-  <button id="btn-reiniciar" onclick="reiniciar()">Reiniciar Jogo</button>
+  
+  <div id="resultados">
+    <p>Asteroides destruídos: <span id="ast-destruidos">0</span></p>
+    <p>Inimigos destruídos: <span id="inim-destruidos">0</span></p>
+  </div>
+  
+  <button id="btn-reiniciar" class="piscando" onclick="reiniciar()">Reiniciar Jogo</button>
   <script src="../lib_webgpu.min.js"></script>
   <script src="main.js"></script>
 </body>
