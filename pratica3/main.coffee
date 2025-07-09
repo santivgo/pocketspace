@@ -10,6 +10,8 @@ arqs =
   asteroide: 'data/meteoro.ply'
 
 nave = null
+hp_nave = 3
+coracoes = []
 
 obj_quad = null
 
@@ -42,6 +44,7 @@ carrega_dados = () ->
   res = c.resources_from_files(
     arqs.nave, arqs.asteroide,
     'data/tiro.png',
+    'data/coracao.png',
     'data/sprites/sp[1-4].png',
     'data/explosao1/explosao[0-6].png',
     'data/explosao2/explosao[0-7].png',
@@ -121,6 +124,7 @@ prepara_instancias = () ->
     instance_index: 2, instance_group: gr.dados_instancias
   )
 
+  cria_coracoes()
   nave = cria_nave( vec( 3,-2,0 ) ) # x:7 e y:5 da pra faze wrap around
   cria_asteroide( vec( -4,2,0 ) )
 
@@ -133,7 +137,13 @@ cria_novo = (inst) ->
       cria_coisa(vec(-7, random_between(-5,5), 0))
 
 
-
+cria_coracoes = () ->
+  for i in [0...hp_nave]
+    coracao = ls.instance(obj_quad, pipeline: pipe_tex, material: gr.dados_materiais[1])
+    coracao.set_class('coracao')
+    coracao.pos = vec(-5.5 + i * 0.5, 3, 0)
+    coracao.size = 0.4
+    coracoes.push(coracao)
 
 
 cria_nave = (pos) ->
@@ -316,6 +326,20 @@ bateu = (inst1, inst2) ->
         
   return distancia < raio_colisao
 
+nave_destruida = () ->
+  hp_nave = hp_nave - 1
+
+  if coracoes.length > 0
+    ultimo = coracoes.pop()
+    ultimo.remove()
+
+  if hp_nave == 0
+    nave.remove() 
+    cria_explosao(nave.pos)
+    return true
+
+  return false
+
 detectar_colisao = () ->
   tiros = ls.get_instances_by_class( 'tiro' )
   asteroides = ls.get_instances_by_class( 'asteroide' )
@@ -324,17 +348,15 @@ detectar_colisao = () ->
 
   for inimigo in inimigos
     if bateu(nave, inimigo)
-      nave.remove() 
       inimigo.remove()
-      cria_explosao(nave.pos)
-      break
+      if nave_destruida() 
+        break 
     
   for ast in asteroides
     if bateu(nave, ast)
-      nave.remove() 
       ast.remove()
-      cria_explosao(nave.pos)
-      break
+      if nave_destruida()
+        break
 
   for tiro in tiros
     for ast in asteroides
@@ -514,6 +536,9 @@ atualiza_uniforms = () ->
     cl = inst.get_class()
 
     switch cl
+      when 'coracao'
+        u.model = TRS inst.pos, 0,0,0,0, inst.size
+
       when 'nave'        
         u.model = TRS nave.pos, nave.ang,0,0,1, 0.3
 
