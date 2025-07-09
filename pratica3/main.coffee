@@ -13,7 +13,11 @@ arqs =
   asteroide: 'data/meteoro.ply'
 
 nave = null
+rastro_propulsao = null  # Variável para manter referência ao rastro
 hp_nave = 3
+nivel_atual = 1
+multiplicador_lv = 2
+
 coracoes = []
 
 obj_quad = null
@@ -81,7 +85,6 @@ prepara_shader_data_groups = () ->
   u.end()
 
 
-
 atualiza_score = () ->
   try
     scoreElemento = document.getElementById('score')
@@ -93,6 +96,15 @@ loop_propulsao = (inst) ->
     gr.dados_materiais,
     on_animation_end: loop_propulsao
   )
+
+constrole_nivel = () ->
+  scoreElemento = document.getElementById('score')
+  score = parseInt(scoreElemento.textContent)
+  if score >= multiplicador_lv * nivel_atual
+    nivel_atual += 1
+    if Math.random() < 0.1
+      hp_nave += 1
+      cria_coracoes()
 
 
 prepara_pipelines = () ->
@@ -159,8 +171,18 @@ cria_novo = (inst) ->
 
 
 cria_coracoes = () ->
+  for coracao in coracoes
+    coracao.remove()
+  coracoes.length = 0
+
+  if hp_nave > 9
+    hp_nave = 9
+
+  mt_coracao = gr.dados_materiais.get_by_url('data/coracao.png')
+
   for i in [0...hp_nave]
-    coracao = ls.instance(obj_quad, pipeline: pipe_tex, material: gr.dados_materiais[1])
+    coracao = ls.instance(obj_quad, pipeline: pipe_tex, material: mt_coracao)
+
     coracao.set_class('coracao')
     coracao.pos = vec(-5.5 + i * 0.5, 3, 0)
     coracao.size = 0.4
@@ -262,6 +284,7 @@ cria_coisa = (pos) ->
 
   return coisa
 
+
 toca_som = (inst) ->
   audioContext = new AudioContext();
   source = audioContext.createBufferSource();
@@ -359,6 +382,9 @@ nave_destruida = () ->
   if hp_nave == 0
     nave.remove() 
     cria_explosao(nave.pos)
+
+    document.getElementById('btn-reiniciar').style.display = 'block'
+
     return true
 
   return false
@@ -368,27 +394,34 @@ detectar_colisao = () ->
   asteroides = ls.get_instances_by_class( 'asteroide' )
   inimigos = ls.get_instances_by_class( 'coisa' )
 
-
   for inimigo in inimigos
     if bateu(nave, inimigo)
       inimigo.remove()
       toca_som('colisao')
 
       if nave_destruida() 
-        break 
-    
+        if rastro_propulsao?
+          rastro_propulsao.deve_remover = true
+          rastro_propulsao = null
+        break
+
   for ast in asteroides
     if bateu(nave, ast)
       ast.remove()
       toca_som('colisao')
 
       if nave_destruida()
+        # Marca o rastro para remoção quando a nave é destruída
+        if rastro_propulsao?
+          rastro_propulsao.deve_remover = true
+          rastro_propulsao = null
+
         break
 
   for tiro in tiros
     for ast in asteroides
       if bateu(tiro, ast)
-        tiro.remove() 
+        tiro.remove()
         ast.remove()
         toca_som('colisao')
         cria_explosao(ast.pos)
@@ -399,13 +432,9 @@ detectar_colisao = () ->
           cria_asteroide(ast.pos, random_between(0.06, ast.size/1.3))
           break
 
-
-      
-        
     for inimigo in inimigos
-      
       if bateu(tiro, inimigo)
-        tiro.remove() 
+        tiro.remove()
         inimigo.remove()
         cria_explosao(inimigo.pos)
         toca_som('colisao')
@@ -416,6 +445,7 @@ renderiza = () ->
   processa_movimento()
   detectar_colisao()
   atualiza_uniforms()
+  constrole_nivel()
 
   job.render_begin()
   job.render_instance_list( ls )
@@ -458,7 +488,7 @@ processa_movimento = () ->
   fator = 0.1
 
   asteroides = ls.get_instances_by_class( 'asteroide' )
-  if (asteroides.length == 0)
+  if (asteroides.length == (nivel_atual - 1))
     cria_novo('asteroide')
     cria_novo('asteroide')
     cria_novo('coisa')
@@ -467,7 +497,7 @@ processa_movimento = () ->
 
   
   for ast in asteroides
-    ast.pos = ajuste(ast.pos.add( ast.vel.mul_by_scalar(fator) ))
+    ast.pos = ajuste(ast.pos.add( ast.vel.mul_by_scalar(fator * multiplicador_lv) ))
 
 
   tiros = ls.get_instances_by_class( 'tiro' )
@@ -554,8 +584,6 @@ processa_movimento = () ->
   nave.vel = nave.vel.mul_by_scalar( 0.95 )
 
 
-
-
 TRS = (pos, ang,rx,ry,rz, scale_factor) ->
   S = mat.scale scale_factor
   R = mat.rotate(ang, rx,ry,rz) 
@@ -566,6 +594,7 @@ TRS = (pos, ang,rx,ry,rz, scale_factor) ->
 atualiza_uniforms = () ->
 
   for inst in ls.instances()
+    continue unless inst? and inst.get_uniform_data?
     u = inst.get_uniform_data()
     cl = inst.get_class()
 
@@ -599,6 +628,21 @@ atualiza_uniforms = () ->
   gr.dados_instancias.gpu_send()
 
 
+nave_destruida = () ->
+  hp_nave = hp_nave - 1
 
+  if coracoes.length > 0
+    ultimo = coracoes.pop()
+    ultimo.remove()
+
+  if hp_nave == 0
+    nave.remove()
+    cria_explosao(nave.pos)
+    return true
+
+  return false
 
 main()
+
+window.reiniciar = () =>
+  location.reload()
