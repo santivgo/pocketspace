@@ -1,7 +1,7 @@
 c = pipe_cor = pipe_tex = job = mat = res = ls = null
 propulsao = null
 jogo_acabou = false
-
+pipe_tex_additive = ps = null
 
 
 gr =
@@ -64,6 +64,7 @@ carrega_dados = () ->
     'data/explosao2/explosao[0-7].png',
     'data/propulsao/flicker/[1-6].png',
     'data/rastro[1-2].png',
+    'data/ps/pp[15-44].png',
     'shader_cor.wgsl', 'shader_tex.wgsl'
   )
   await res.load_all()
@@ -87,6 +88,16 @@ prepara_shader_data_groups = () ->
   u = gr.dados_instancias.binding(0).get_uniform_list()
   u.begin()
   u.mat4x4('model')
+  u.end()
+
+  gr.dados_materiais = res.materials_from_tex_list()
+
+  gr.dados_instancias = c.shader_data_group_with_uniform_list(1000)
+  u = gr.dados_instancias.binding(0).get_uniform_list()
+  u.begin()
+  u.mat4x4('model')
+  u.vec4('color')
+  u.vec4i('color_params')
   u.end()
 
 
@@ -136,6 +147,12 @@ prepara_pipelines = () ->
   pipe_tex.expect_group(2).binding(0).uniform_list()
   pipe_tex.end()
 
+  pipe_tex_additive = c.pipeline()
+  pipe_tex_additive.begin( 'triangles' )
+  pipe_tex_additive.copy_from( pipe_tex )
+  pipe_tex_additive.blend_mode( 'additive' )
+  pipe_tex_additive.end()
+
 
 prepara_instancias = () ->
   vdata = [
@@ -153,6 +170,10 @@ prepara_instancias = () ->
     material_index: 1,
     instance_index: 2, instance_group: gr.dados_instancias
   )
+
+  ps = c.particle_system()
+  ps.use_pipeline( pipe_tex_additive )
+  ps.use_material( gr.dados_materiais.get_by_url("data/ps/pp24.png") )
 
   cria_coracoes()
   nave = cria_nave( vec( 3,-2,0 ) ) # x:7 e y:5 da pra faze wrap around
@@ -287,6 +308,41 @@ cria_explosao = (pos) ->
     on_animation_end: (inst) ->
       inst.remove()
   )
+
+  dir = calcular_direcao_para_nave(pos, nave.pos)
+
+  vdir = dir.normalize().dup().mul(3)
+
+  mts = gr.dados_materiais.get_by_urls(
+    'data/ps/pp34.png',
+    'data/ps/pp42.png',
+    'data/ps/pp43.png',
+  )
+  ps.use_material_from_random_list( mts )
+
+  config =
+    emission_rate: 15
+    vel_variation: 1.2
+    turbulence_strength: 2.5
+    vel_factor: 0.99 
+    size_start: 1.3 
+    size_end: 0 
+    color_list: [ 
+      rgb(0.498,0.013000000000000012,0.224,1)
+      rgb(0.969,0.39099999999999996,0.135,1)
+      rgb(0.871,0.757,0.16900000000000004,1)
+      rgb(0.015000000000000013,0.829,0.541,1)
+      rgb(0.194,0.594,0.208,1)
+      rgb(0.189,0.071,0.232,1)
+    ] 
+    ang_start_random: 360 
+    ang_vel_random: 50 
+    age_min: 1 
+    age_max: 2 
+      
+  config.pos = pos.dup()
+  config.vel = vdir
+  ps.emit( config )
 
 
 
@@ -754,13 +810,27 @@ multiplayer_send_to_server = () ->
 
 atualiza_uniforms = () ->
 
+  color_params = vec(4,1,0,0)
+
   for inst in ls.instances()
     continue unless inst? and inst.get_uniform_data?
     u = inst.get_uniform_data()
     cl = inst.get_class()
     multiplayer_send_to_server()
 
+    u = inst.get_uniform_data()
+    cl = inst.get_class()
+
+    # adicionar isso
+    #
+    u.color_params = color_params
+
     switch cl
+      when 'particle'
+        u.model = TRS inst.pos, inst.ang,0,0,1, inst.size
+        u.color = inst.color
+        u.color_params = vec(4,9,0,0)
+
       when 'multiplayer-nave'
         u.model = TRS inst.pos, inst.ang,0,0,1, 0.3
 

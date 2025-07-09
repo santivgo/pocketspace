@@ -6,6 +6,8 @@ struct GlobalUniforms {
 
 struct InstanceUniforms {
     model: mat4x4<f32>,
+    color: vec4<f32>,
+    color_params: vec4<i32>
 };
 @group(2) @binding(0) var<uniform> instanceUniforms: InstanceUniforms;
 
@@ -55,9 +57,89 @@ struct FragmentOut {
 @fragment
 fn fs_main(input: FragmentIn) -> FragmentOut {
     var out: FragmentOut;
-
     out.color = textureSample(tex, tex_sampler, input.uv);
-    //out.color *= input.color;
+    
+    let tex_color = textureSample(tex, tex_sampler, input.uv);
+
+    let modo_cor = instanceUniforms.color_params.x;
+    let modo_alpha = instanceUniforms.color_params.y;
+
+    var cor: vec3<f32>;
+    var alpha: f32;
+
+    switch (modo_cor) {
+        case 0: {
+            cor = input.color.rgb;
+        }
+        case 1: {
+            cor = tex_color.rgb;
+        }
+        case 2: {
+            cor = instanceUniforms.color.rgb;
+        }
+        case 3: {
+            cor = input.color.rgb * instanceUniforms.color.rgb;
+        }
+        case 4: {
+            cor = tex_color.rgb * instanceUniforms.color.rgb;
+        }
+        case 5: {
+            cor = tex_color.rgb * input.color.rgb;
+        }
+        case 6: {
+            cor = input.color.rgb + instanceUniforms.color.rgb;
+        }
+        case 7: {
+            cor = tex_color.rgb + instanceUniforms.color.rgb;
+        }
+        case 8: {
+            cor = tex_color.rgb + input.color.rgb;
+        }
+        default: {
+            cor = vec3<f32>(1.0, 1.0, 1.0);
+        }
+    }
+
+    switch (modo_alpha) {
+        case 0: {
+            alpha = input.color.a;
+        }
+        case 1: {
+            alpha = tex_color.a;
+        }
+        case 2: {
+            alpha = instanceUniforms.color.a;
+        }
+        case 3: {
+            alpha = input.color.a * instanceUniforms.color.a;
+        }
+        case 4: {
+            alpha = tex_color.a * instanceUniforms.color.a;
+        }
+        case 5: {
+            alpha = tex_color.a * input.color.a;
+        }
+        case 6: {
+            alpha = input.color.a + instanceUniforms.color.a;
+        }
+        case 7: {
+            alpha = tex_color.a + instanceUniforms.color.a;
+        }
+        case 8: {
+            alpha = tex_color.a + input.color.a;
+        }
+        case 9: {
+            alpha = tex_color.r;
+        }
+        case 10: {
+            alpha = (tex_color.r + tex_color.g + tex_color.b ) / 3.0;
+        }
+        default: {
+            alpha = 1.0;
+        }
+    }
+
+    out.color = vec4<f32>( cor, alpha );
 
     return out;
 }
