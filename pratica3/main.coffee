@@ -6,7 +6,7 @@ gr =
   dados_instancias: null
 
 arqs =
-  nave: 'data/nave.txt2'
+  nave: 'data/nave.ply'
   asteroide: 'data/meteoro.ply'
 
 nave = null
@@ -48,6 +48,8 @@ carrega_dados = () ->
     'data/sprites/sp[1-4].png',
     'data/explosao1/explosao[0-6].png',
     'data/explosao2/explosao[0-7].png',
+    'data/propulsao/shrink/[1-6].png',
+
     'shader_cor.wgsl', 'shader_tex.wgsl'
   )
   await res.load_all()
@@ -182,6 +184,20 @@ cria_asteroide = (pos, size = 0.17) ->
   return ast
 
 
+cria_propulsao = (pos) ->
+  inst = ls.instance( obj_quad, pipeline:pipe_tex )
+  inst.set_class( 'propulsao' )
+
+  inst.pos = pos
+  inst.size = 2.0
+  inst.start_animation_from_materials(
+    'data/propulsao/shrink/[1-6].png',
+    gr.dados_materiais,
+    on_animation_end: (inst) ->
+      inst.remove()
+  )
+
+
 cria_tiro = (nave) ->
   inst = ls.instance( obj_quad, pipeline:pipe_tex, material:gr.dados_materiais[0] )
   inst.set_class( 'tiro' )
@@ -231,8 +247,9 @@ cria_coisa = (pos) ->
   coisa.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.1) 
 
   coisa.size = 1.0
-  coisa.radius = coisa.size * 0.7  
-
+  coisa.radius = coisa.size * 0.3
+  coisa.forca_perseguicao = 0.05  # Força de perseguição
+  coisa.velocidade_maxima = 0.8   # Velocidade máxima
 
   return coisa
 
@@ -392,6 +409,22 @@ ajuste = (pos) ->
 
   return pos
 
+calcular_direcao_para_nave = (inimigo_pos, nave_pos) ->
+
+  dx = nave_pos.x - inimigo_pos.x
+  dy = nave_pos.y - inimigo_pos.y
+  dz = nave_pos.z - inimigo_pos.z
+
+
+  # Calcula a distância
+  distancia = Math.sqrt(dx*dx + dy*dy + dz*dz)
+
+  if distancia == 0
+    return vec(0, 0, 0)
+
+  # Normaliza o vetor (direção unitária)
+  return vec(dx/distancia, dy/distancia, dz/distancia)
+
 
 processa_movimento = () ->
   fator = 0.1
@@ -418,7 +451,21 @@ processa_movimento = () ->
 
 
   for coisa in coisas
+    if nave?
+      direcao = calcular_direcao_para_nave(coisa.pos, nave.pos)
+      console.log(direcao)
+    
+      forca = direcao.mul_by_scalar(coisa.forca_perseguicao)
+      coisa.vel = coisa.vel.add(forca)
+      
+      # Limita velocidade máxima
+      vel_magnitude = Math.sqrt(coisa.vel.x*coisa.vel.x + coisa.vel.y*coisa.vel.y)
+      if vel_magnitude > coisa.velocidade_maxima
+        coisa.vel = coisa.vel.mul_by_scalar(coisa.velocidade_maxima / vel_magnitude)
+  
     coisa.pos = ajuste(coisa.pos.add( coisa.vel.mul_by_scalar(0.3) ))
+    coisa.vel = coisa.vel.mul_by_scalar(0.2)
+
 
 
   ang_inc = 3
@@ -428,6 +475,12 @@ processa_movimento = () ->
     y_inc = 1
   else if teclas['ArrowDown'] >= 1
     y_inc = -1
+
+  
+  if y_inc == 1  # Se está acelerando para frente
+    pos_propulsao = nave.pos.add(nave.frente.mul_by_scalar(-0.6))  # Atrás da nave
+    cria_propulsao(nave.pos)
+
   
   if y_inc == -1
     ang_inc = -ang_inc

@@ -10,7 +10,7 @@ gr = {
 };
 
 arqs = {
-  nave: 'data/nave.txt2',
+  nave: 'data/nave.ply',
   asteroide: 'data/meteoro.ply'
 };
 
@@ -49,6 +49,7 @@ main = async() => {
 
 carrega_dados = async function() {
   res = c.resources_from_files(arqs.nave, arqs.asteroide, 'data/tiro.png', 'data/coracao.png', 'data/sprites/sp[1-4].png', 'data/explosao1/explosao[0-6].png', 'data/explosao2/explosao[0-7].png', 'shader_cor.wgsl', 'shader_tex.wgsl');
+
   return (await res.load_all());
 };
 
@@ -177,6 +178,21 @@ cria_asteroide = function(pos, size = 0.17) {
   return ast;
 };
 
+cria_propulsao = function(pos) {
+  var inst;
+  inst = ls.instance(obj_quad, {
+    pipeline: pipe_tex
+  });
+  inst.set_class('propulsao');
+  inst.pos = pos;
+  inst.size = 2.0;
+  return inst.start_animation_from_materials('data/propulsao/shrink/[1-6].png', gr.dados_materiais, {
+    on_animation_end: function(inst) {
+      return inst.remove();
+    }
+  });
+};
+
 cria_tiro = function(nave) {
   var inst;
   inst = ls.instance(obj_quad, {
@@ -225,7 +241,9 @@ cria_coisa = function(pos) {
   coisa.pos = pos;
   coisa.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.1);
   coisa.size = 1.0;
-  coisa.radius = coisa.size * 0.7;
+  coisa.radius = coisa.size * 0.3;
+  coisa.forca_perseguicao = 0.05; // Força de perseguição
+  coisa.velocidade_maxima = 0.8; // Velocidade máxima
   return coisa;
 };
 
@@ -406,8 +424,23 @@ ajuste = function(pos) {
   return pos;
 };
 
+calcular_direcao_para_nave = function(inimigo_pos, nave_pos) {
+  var distancia, dx, dy, dz;
+  dx = nave_pos.x - inimigo_pos.x;
+  dy = nave_pos.y - inimigo_pos.y;
+  dz = nave_pos.z - inimigo_pos.z;
+  // Calcula a distância
+  distancia = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  if (distancia === 0) {
+    return vec(0, 0, 0);
+  }
+  // Normaliza o vetor (direção unitária)
+  return vec(dx / distancia, dy / distancia, dz / distancia);
+};
+
 processa_movimento = function() {
   var R, ang_inc, ast, asteroides, coisa, coisas, fator, j, k, l, len, len1, len2, tiro, tiros, v, y_inc;
+ 
   fator = 0.1;
   asteroides = ls.get_instances_by_class('asteroide');
   if (asteroides.length === 0) {
@@ -427,7 +460,9 @@ processa_movimento = function() {
   coisas = ls.get_instances_by_class('coisa');
   for (l = 0, len2 = coisas.length; l < len2; l++) {
     coisa = coisas[l];
+
     coisa.pos = ajuste(coisa.pos.add(coisa.vel.mul_by_scalar(0.3)));
+    coisa.vel = coisa.vel.mul_by_scalar(0.2);
   }
   ang_inc = 3;
   y_inc = 0;
@@ -435,6 +470,10 @@ processa_movimento = function() {
     y_inc = 1;
   } else if (teclas['ArrowDown'] >= 1) {
     y_inc = -1;
+  }
+  if (y_inc === 1) { // Se está acelerando para frente
+    pos_propulsao = nave.pos.add(nave.frente.mul_by_scalar(-0.6)); // Atrás da nave
+    cria_propulsao(nave.pos);
   }
   if (y_inc === -1) {
     ang_inc = -ang_inc;
