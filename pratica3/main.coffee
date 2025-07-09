@@ -109,7 +109,7 @@ controle_nivel = () ->
   nivel_atual += 1
   nivelElemento.textContent = ( nivel_atual ).toString() 
 
-  if Math.random() < 0.1
+  if Math.random() < 0.3
     cria_coracao_power()
 
 
@@ -154,7 +154,7 @@ prepara_instancias = () ->
 
   cria_coracoes()
   nave = cria_nave( vec( 3,-2,0 ) ) # x:7 e y:5 da pra faze wrap around
-  cria_asteroide( vec( -4,2,0 ) )
+  cria_asteroide( vec(-7, random_between(-5,5), 0) )
   propulsao = ls.instance(obj_quad, pipeline: pipe_tex)
   propulsao.set_class('propulsao')
   propulsao.size = 1
@@ -526,6 +526,21 @@ calcular_direcao_para_nave = (inimigo_pos, nave_pos) ->
   # Normaliza o vetor (direção unitária)
   return vec(dx/distancia, dy/distancia, dz/distancia)
 
+spawner_niveis = () ->
+  cria_novo('asteroide')
+  if nivel_atual == 2
+    cria_novo('asteroide')
+    cria_novo('coisa')
+  if nivel_atual > 2
+    cria_novo('coisa')
+    cria_novo('coisa')
+  if nivel_atual > 4
+    cria_novo('coisa')
+    for nivel in [0..nivel_atual]
+      if nivel % 2 == 0
+        cria_novo('coisa')
+    cria_novo('coisa')
+    cria_novo('asteroide')
 
 processa_movimento = () ->
   fator = 0.1
@@ -533,26 +548,15 @@ processa_movimento = () ->
   asteroides = ls.get_instances_by_class( 'asteroide' )
   coracoes_powerup = ls.get_instances_by_class( 'coracao_power' )
 
-  if (asteroides.length == 0)
+  if (asteroides.length == 0 || asteroides_destruidos + inimigos_destruidos > nivel_atual * 5)
     controle_nivel()
-
-    
-    cria_novo('asteroide')
-    if nivel_atual > 2
-      cria_novo('coisa')
-    if nivel_atual > 4
-      cria_novo('coisa')
-      cria_novo('asteroide')
-
-
-
-
+    spawner_niveis()
   
   for ast in asteroides
     ast.pos = ajuste(ast.pos.add( ast.vel.mul_by_scalar(fator * multiplicador_lv) ))
 
   for coracao_p in coracoes_powerup
-    coracao_p.pos = ajuste(coracao_p.pos.add( coracao_p.vel.mul_by_scalar(fator * multiplicador_lv) ))
+    coracao_p.pos = ajuste(coracao_p.pos.add( coracao_p.vel.mul_by_scalar(fator) ))
 
   tiros = ls.get_instances_by_class( 'tiro' )
   for tiro in tiros
