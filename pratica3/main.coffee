@@ -1,5 +1,6 @@
 c = pipe_cor = pipe_tex = job = mat = res = ls = null
 propulsao = null
+jogo_acabou = false
 
 
 
@@ -11,12 +12,14 @@ gr =
 arqs =
   nave: 'data/nave.ply'
   asteroide: 'data/meteoro.ply'
+  coracao: 'data/coracao.ply'
+
 
 nave = null
 rastro_propulsao = null  # Variável para manter referência ao rastro
 hp_nave = 3
 nivel_atual = 1
-multiplicador_lv = 2
+multiplicador_lv = 1.2
 
 coracoes = []
 
@@ -51,7 +54,7 @@ main = () =>
 
 carrega_dados = () ->  
   res = c.resources_from_files(
-    arqs.nave, arqs.asteroide,
+    arqs.nave, arqs.asteroide, arqs.coracao
     'data/tiro.png',
     'data/coracao.png',
     'data/sprites/sp[1-4].png',
@@ -97,14 +100,17 @@ loop_propulsao = (inst) ->
     on_animation_end: loop_propulsao
   )
 
-constrole_nivel = () ->
+controle_nivel = () ->
   scoreElemento = document.getElementById('score')
+  nivelElemento = document.getElementById('level')
+
   score = parseInt(scoreElemento.textContent)
-  if score >= multiplicador_lv * nivel_atual
-    nivel_atual += 1
-    if Math.random() < 0.1
-      hp_nave += 1
-      cria_coracoes()
+
+  nivel_atual += 1
+  nivelElemento.textContent = ( nivel_atual ).toString() 
+
+  if Math.random() < 0.1
+    cria_coracao_power()
 
 
 prepara_pipelines = () ->
@@ -165,9 +171,11 @@ cria_novo = (inst) ->
   switch inst
     when 'asteroide'
       cria_asteroide(vec(-7, random_between(-5,5), 0))
+      break
 
     when 'coisa'
       cria_coisa(vec(-7, random_between(-5,5), 0))
+      break
 
 
 cria_coracoes = () ->
@@ -197,7 +205,7 @@ cria_nave = (pos) ->
   inst.vel = vec( 0,0,0 )
   inst.ang = 0
   inst.frente = vec( 0,1,0 )
-  inst.radius = 0.6
+  inst.radius = 1
 
 
   return inst
@@ -217,6 +225,30 @@ cria_asteroide = (pos, size = 0.17) ->
 
   ast = ls.instance( res.obj(arqs.asteroide), pipeline:pipe_cor )
   ast.set_class( 'asteroide' )
+
+  ast.pos = pos
+  ast.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.2) 
+  ast.ang = random(90)
+  ast.size = size
+  ast.radius = ast.size * 1.5
+
+  return ast
+
+
+cria_coracao_power = (pos, size = 0.1) ->
+  min_pos = vec( 7,-3, 0 )
+  max_pos = vec( 7,+3, 0 )
+
+  max_vel = vec( 1,1, 0 )
+  min_vel = vec( -1,-1, 0 )
+
+
+
+  if not pos?
+    pos = vec_random( min_pos, max_pos )
+
+  ast = ls.instance( res.obj(arqs.coracao), pipeline:pipe_cor )
+  ast.set_class( 'coracao_power' )
 
   ast.pos = pos
   ast.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.2) 
@@ -383,7 +415,8 @@ nave_destruida = () ->
 
   if hp_nave == 0
     nave.remove() 
-    cria_explosao(nave.pos)
+    cria_explosao(nave.pos) 
+    jogo_acabou = true
 
     document.getElementById('btn-reiniciar').style.display = 'block'
 
@@ -395,6 +428,14 @@ detectar_colisao = () ->
   tiros = ls.get_instances_by_class( 'tiro' )
   asteroides = ls.get_instances_by_class( 'asteroide' )
   inimigos = ls.get_instances_by_class( 'coisa' )
+  coracoes_power = ls.get_instances_by_class( 'coracao_power' )
+
+  for coracao in coracoes_power
+    if bateu(nave, coracao)
+      hp_nave += 1
+      coracao.remove()
+
+      cria_coracoes()
 
   for inimigo in inimigos
     if bateu(nave, inimigo)
@@ -444,10 +485,10 @@ detectar_colisao = () ->
         break
   
 renderiza = () ->
-  processa_movimento()
-  detectar_colisao()
+  if not jogo_acabou
+    processa_movimento()
+    detectar_colisao()
   atualiza_uniforms()
-  constrole_nivel()
 
   job.render_begin()
   job.render_instance_list( ls )
@@ -490,10 +531,19 @@ processa_movimento = () ->
   fator = 0.1
 
   asteroides = ls.get_instances_by_class( 'asteroide' )
-  if (asteroides.length == (nivel_atual - 1))
+  coracoes_powerup = ls.get_instances_by_class( 'coracao_power' )
+
+  if (asteroides.length == 0)
+    controle_nivel()
+
+    
     cria_novo('asteroide')
-    cria_novo('asteroide')
-    cria_novo('coisa')
+    if nivel_atual > 2
+      cria_novo('coisa')
+    if nivel_atual > 4
+      cria_novo('coisa')
+      cria_novo('asteroide')
+
 
 
 
@@ -501,6 +551,8 @@ processa_movimento = () ->
   for ast in asteroides
     ast.pos = ajuste(ast.pos.add( ast.vel.mul_by_scalar(fator * multiplicador_lv) ))
 
+  for coracao_p in coracoes_powerup
+    coracao_p.pos = ajuste(coracao_p.pos.add( coracao_p.vel.mul_by_scalar(fator * multiplicador_lv) ))
 
   tiros = ls.get_instances_by_class( 'tiro' )
   for tiro in tiros
@@ -513,12 +565,10 @@ processa_movimento = () ->
   for coisa in coisas
     if nave?
       direcao = calcular_direcao_para_nave(coisa.pos, nave.pos)
-      console.log(direcao)
     
-      forca = direcao.mul_by_scalar(coisa.forca_perseguicao)
+      forca = direcao.mul_by_scalar(coisa.forca_perseguicao * multiplicador_lv)
       coisa.vel = coisa.vel.add(forca)
       
-      # Limita velocidade máxima
       vel_magnitude = Math.sqrt(coisa.vel.x*coisa.vel.x + coisa.vel.y*coisa.vel.y)
       if vel_magnitude > coisa.velocidade_maxima
         coisa.vel = coisa.vel.mul_by_scalar(coisa.velocidade_maxima / vel_magnitude)
@@ -528,7 +578,7 @@ processa_movimento = () ->
 
 
 
-  ang_inc = 3
+  ang_inc = 4
   y_inc = 0
 
   if teclas['ArrowUp'] >= 1
@@ -610,7 +660,7 @@ atualiza_uniforms = () ->
         else
           u.model = TRS nave.pos, nave.ang,0,0,1, 0.3
 
-      when 'asteroide'
+      when 'asteroide', 'coracao_power'
         u.model = TRS inst.pos, inst.ang,1,1,1, inst.size
         inst.ang = inst.ang + 1
 
