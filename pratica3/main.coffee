@@ -10,6 +10,7 @@ arqs =
   asteroide: 'data/meteoro.ply'
 
 nave = null
+rastro_propulsao = null  # Variável para manter referência ao rastro
 
 obj_quad = null
 
@@ -45,6 +46,12 @@ carrega_dados = () ->
     'data/sprites/sp[1-4].png',
     'data/explosao1/explosao[0-6].png',
     'data/explosao2/explosao[0-7].png',
+    'data/propulsao/grow/[1-6].png',
+    'data/propulsao/flicker/[1-6].png',
+    'data/propulsao/shrink/[1-6].png',
+    
+
+
     'shader_cor.wgsl', 'shader_tex.wgsl'
   )
   await res.load_all()
@@ -172,6 +179,28 @@ cria_asteroide = (pos, size = 0.17) ->
   return ast
 
 
+cria_propulsao = (pos, tipo) ->
+  inst = ls.instance( obj_quad, pipeline:pipe_tex )
+  inst.set_class( 'propulsao' )
+
+  inst.pos = pos.add(vec(0,0,-1))
+  inst.size = 0.8
+  inst.ang = nave.ang 
+  inst.start_animation_from_materials(
+    'data/propulsao/flicker/[1-6].png',
+    gr.dados_materiais,
+    on_animation_end: (inst) ->
+      try
+        inst.remove()
+      catch error
+        console.log("Erro ao remover instância de propulsão:", error)
+      if rastro_propulsao == inst
+        rastro_propulsao = null
+  )
+
+  return inst
+
+
 cria_tiro = (nave) ->
   inst = ls.instance( obj_quad, pipeline:pipe_tex, material:gr.dados_materiais[0] )
   inst.set_class( 'tiro' )
@@ -221,7 +250,7 @@ cria_coisa = (pos) ->
   coisa.vel = vec_random(min_vel, max_vel).mul_by_scalar(0.1) 
 
   coisa.size = 1.0
-  coisa.radius = coisa.size * 0.7  
+  coisa.radius = coisa.size * 0.3
   coisa.forca_perseguicao = 0.05  # Força de perseguição
   coisa.velocidade_maxima = 0.8   # Velocidade máxima
 
@@ -311,6 +340,12 @@ detectar_colisao = () ->
       nave.remove() 
       inimigo.remove()
       cria_explosao(nave.pos)
+      
+      # Marca o rastro para remoção quando a nave é destruída
+      if rastro_propulsao?
+        rastro_propulsao.deve_remover = true
+        rastro_propulsao = null
+      
       break
     
   for ast in asteroides
@@ -318,6 +353,12 @@ detectar_colisao = () ->
       nave.remove() 
       ast.remove()
       cria_explosao(nave.pos)
+      
+      # Marca o rastro para remoção quando a nave é destruída
+      if rastro_propulsao?
+        rastro_propulsao.deve_remover = true
+        rastro_propulsao = null
+      
       break
 
   for tiro in tiros
@@ -375,6 +416,8 @@ calcular_direcao_para_nave = (inimigo_pos, nave_pos) ->
 
   dx = nave_pos.x - inimigo_pos.x
   dy = nave_pos.y - inimigo_pos.y
+  dz = nave_pos.z - inimigo_pos.z
+
 
   # Calcula a distância
   distancia = Math.sqrt(dx*dx + dy*dy + dz*dz)
@@ -415,7 +458,6 @@ processa_movimento = () ->
       direcao = calcular_direcao_para_nave(coisa.pos, nave.pos)
       console.log(direcao)
     
-      # Aplica força de perseguição
       forca = direcao.mul_by_scalar(coisa.forca_perseguicao)
       coisa.vel = coisa.vel.add(forca)
       
@@ -425,7 +467,7 @@ processa_movimento = () ->
         coisa.vel = coisa.vel.mul_by_scalar(coisa.velocidade_maxima / vel_magnitude)
   
     coisa.pos = ajuste(coisa.pos.add( coisa.vel.mul_by_scalar(0.3) ))
-    coisa.vel = coisa.vel.mul_by_scalar(0.98)
+    coisa.vel = coisa.vel.mul_by_scalar(0.2)
 
 
 
@@ -436,6 +478,18 @@ processa_movimento = () ->
     y_inc = 1
   else if teclas['ArrowDown'] >= 1
     y_inc = -1
+
+  
+  # Gerencia o rastro de propulsão
+  if y_inc == 1  # Se está acelerando para frente
+    if not rastro_propulsao?  # Cria o rastro se não existir
+      rastro_propulsao = cria_propulsao(nave.pos)
+  else
+    # Marca o rastro para remoção se não está acelerando
+    if rastro_propulsao?
+      rastro_propulsao.deve_remover = true
+      rastro_propulsao = null
+
   
   if y_inc == -1
     ang_inc = -ang_inc
@@ -471,7 +525,6 @@ processa_movimento = () ->
 
   nave.pos = ajuste(nave.pos.add( nave.vel.mul_by_scalar(fator) ))
 
-
   nave.vel = nave.vel.mul_by_scalar( 0.95 )
 
 
@@ -502,8 +555,22 @@ atualiza_uniforms = () ->
         u.model = TRS inst.pos, inst.ang,0,0,1, 1.0
         inst.ang = inst.ang + 1
 
+      when 'propulsao'
+        if inst.deve_remover
+            inst.remove()
+          
+        
+        # Atualiza a posição do rastro para ficar atrás da nave
+        if nave?
+          inst.pos = nave.pos.add(nave.frente.mul_by_scalar(-0.8))
+          inst.ang = nave.ang 
+
+        u.model = TRS inst.pos, inst.ang, 0,0,1, inst.size
+
       when 'coisa', 'explosao'
         u.model = TRS inst.pos, 0,0,0,0, inst.size
+      
+
 
   gr.dados_instancias.gpu_send()
 
